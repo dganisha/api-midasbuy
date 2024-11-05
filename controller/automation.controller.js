@@ -499,7 +499,11 @@ exports.startAutomation = async (req, res) => {
       res.status(200).json(success("Success", null, "200"))
     } catch (error) {
       log("An error occurred:" + error, "error");
-      res.status(500).json(success("Success", error, "500"))
+      if (error.message.includes('No element found')) {
+        res.status(500).json(success("Saldo tidak mencukupi", error.message, "500"))   
+      } else {
+        res.status(500).json(success("Error", error.message, "500"))   
+      }
     }
   }
   await browser.close();
