@@ -3,7 +3,7 @@ module.exports = app => {
   const router = require('express').Router()
 
   router.get('/product', dataController.getProducts)
-  router.post('/payment', dataController.getPayment)
+  router.get('/payment', dataController.getPayment)
 
   app.use('/api/data', router)
 }
