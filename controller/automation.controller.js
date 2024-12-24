@@ -1,7 +1,5 @@
-const puppeteer = require("puppeteer")
-const {
-  success,
-} = require("../base/response.base");
+const puppeteer = require("puppeteer");
+const { success } = require("../base/response.base");
 
 function log(msg, type = "info") {
   const timestamp = new Date().toLocaleTimeString();
@@ -45,7 +43,7 @@ async function clickWithRetry(page, selector, description) {
 
 function extractDiamondAndPrice(data) {
   // Regex untuk menangkap nilai diamond dan harga sebelum Rp atau OMR
-  const regex = /(\d+)\n(Rp\s*[\d.,]+|[\d.]+\s*OMR)/g;
+  const regex = /(\d+)\n(Rp\s*[\d.,]+|[\d.]+\s*OMR|[\d.]+\s*AED)/g;
   const result = [];
   let match;
 
@@ -63,30 +61,43 @@ function extractDiamondAndPrice(data) {
 exports.startAutomation = async (req, res) => {
   const id = req.body.userId;
   const loop = req.body.loop ? req.body.loop : 1;
-  const email = req.body.emailLogin
-  const password = req.body.passwordLogin
-  const pilihan = req.body.productId
-  const indexToClick = req.body.paymentId
-  const indexToClick2 = req.body.paymentId2
+  const email = req.body.emailLogin;
+  const password = req.body.passwordLogin;
+  const pilihan = req.body.productId;
+  const indexToClick = req.body.paymentId;
+  const indexToClick2 = req.body.paymentId2;
+  const country = req.body.country;
+
+  let urlMidas = "https://www.midasbuy.com/midasbuy/om/buy/whiteoutsurvival"
+  if(country == "OMR"){
+    urlMidas = "https://www.midasbuy.com/midasbuy/om/buy/whiteoutsurvival"
+  }else if(country == "AED"){
+    urlMidas = "https://www.midasbuy.com/midasbuy/ae/buy/whiteoutsurvival"
+  }
+
+  if(id == 297253814 || id == "297253814"){
+    res.status(500).json(success("Failed, ID input is 297253814. Change to another ID", null, "500"));
+    return;
+  }
 
   const browser = await puppeteer.launch({
     headless: true, // Ubah menjadi true untuk server tanpa GUI
     args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",          // Mengurangi penggunaan memori shared
-        "--single-process",                 // Mode single-process untuk stabilitas di VPS
-        "--disable-gpu",                    // Nonaktifkan GPU jika tidak dibutuhkan
-        "--disable-background-timer-throttling",
-        "--disable-renderer-backgrounding",
-        "--disable-backgrounding-occluded-windows",
-        "--no-zygote",                      // Nonaktifkan proses zygote yang kadang bermasalah di VPS
-        "--disable-extensions"              // Nonaktifkan ekstensi untuk mempercepat proses
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage", // Mengurangi penggunaan memori shared
+      "--single-process", // Mode single-process untuk stabilitas di VPS
+      "--disable-gpu", // Nonaktifkan GPU jika tidak dibutuhkan
+      "--disable-background-timer-throttling",
+      "--disable-renderer-backgrounding",
+      "--disable-backgrounding-occluded-windows",
+      "--no-zygote", // Nonaktifkan proses zygote yang kadang bermasalah di VPS
+      "--disable-extensions", // Nonaktifkan ekstensi untuk mempercepat proses
     ],
   });
 
   const page = await browser.newPage();
-  await page.goto("https://www.midasbuy.com/midasbuy/om/buy/whiteoutsurvival", {
+  await page.goto(urlMidas, {
     timeout: 0,
   });
   log("Navigated to the website.", "success");
@@ -116,6 +127,7 @@ exports.startAutomation = async (req, res) => {
     );
   }
   try {
+    log("PROCESS TO TRY");
     // Klik pertama
     await clickWithRetry(
       page,
@@ -133,7 +145,7 @@ exports.startAutomation = async (req, res) => {
     log("Waiting for login iframe...", "success");
     await page.waitForSelector("#login-iframe", {
       visible: true,
-      timeout: 5000,
+      timeout: 15000,
     });
     const elementHandle = await page.$("#login-iframe");
     const frame = await elementHandle.contentFrame();
@@ -169,7 +181,7 @@ exports.startAutomation = async (req, res) => {
     await frame.type(
       "#login-sdk-app > div.pop-mode-box > div > div.mess > div.form-box > div:nth-child(2) > div:nth-child(2) > div > input[type=password]",
       password,
-      { sleep: 100 }
+      { sleep: 500 }
     );
     log("Password typed successfully.", "success");
     await sleep(1000);
@@ -209,6 +221,7 @@ exports.startAutomation = async (req, res) => {
         "#root > div > div.BindLoginPop_pop_mode_box__rQwbx.BindLoginPop_m_pop__xNR-M.BindLoginPop_active__xl7ac > div.BindLoginPop_pop_mess__8gYyc > div.BindLoginPop_login_box__cCh9l > div > div.BindLoginPop_btn_wrap__eiPwz > div > div",
         "Click ID custom"
       );
+      log("ID entered is : " + id, "success");
       log("ID entered successfully.", "success");
       await sleep(1000);
     }
@@ -272,11 +285,15 @@ exports.startAutomation = async (req, res) => {
       } catch (error) {
         log(error.toString(), "error");
       }
-      await page.waitForSelector('div[data-channel-id="CREDIT_CARD"]');
+      await page.waitForSelector('div[data-channel-id="CREDIT_CARD"]', {
+        visible: true,
+        timeout: 60000,
+      });
       await page.click('div[data-channel-id="CREDIT_CARD"]');
       await sleep(1000);
       await page.waitForSelector(
-        'div.Button_btn__P0ibl.Button_btn_primary__1ncdM[data-pay-button="true"]'
+        'div.Button_btn__P0ibl.Button_btn_primary__1ncdM[data-pay-button="true"]',
+        { visible: true, timeout: 60000 }
       );
 
       // Klik elemen menggunakan page.evaluate
@@ -290,7 +307,8 @@ exports.startAutomation = async (req, res) => {
       });
       await sleep(1000);
       await page.waitForSelector(
-        "#root > div > div.container_wrap > div.OrderInfo_pop_mode_box__P-hF9.OrderInfo_m_pop__8j8Hz.OrderInfo_m_pop__8j8Hz.OrderInfo_active__ihp1K.visible > div.OrderInfo_pop_mess__cYRTn > div:nth-child(5) > div > div > div > div > div"
+        "#root > div > div.container_wrap > div.OrderInfo_pop_mode_box__P-hF9.OrderInfo_m_pop__8j8Hz.OrderInfo_m_pop__8j8Hz.OrderInfo_active__ihp1K.visible > div.OrderInfo_pop_mess__cYRTn > div:nth-child(5) > div > div > div > div > div",
+        { visible: true, timeout: 60000 }
       );
 
       // Klik elemen menggunakan page.evaluate
@@ -303,8 +321,18 @@ exports.startAutomation = async (req, res) => {
         }
       });
       await sleep(1000);
-      await page.waitForSelector("div.Button_btn_wrap__utZqk");
+      try {
+        await page.waitForSelector("div.Button_btn_wrap__utZqk", {
+          visible: true,
+          timeout: 100000,
+        });
+      } catch (error) {
+        log("Error Timeout choose payment", "error");
+        res.status(500).json(success("Error timeout when choose payment", error, "500"));
+        return;
+      }
 
+      // await page.screenshot({ path: '/var/www/html/api-midasbuy/screenshots/before-click.png' });
       // Klik elemen menggunakan page.evaluate
       await page.evaluate(() => {
         const button = document.querySelector("div.Button_btn_wrap__utZqk");
@@ -312,9 +340,20 @@ exports.startAutomation = async (req, res) => {
           button.click();
         }
       });
-      await page.waitForSelector(
-        "#root > div > div.PaymentResult_container_wrap__ddHmB > div > div.PurchaseContainer_title_box__kWFnk > div > div"
-      );
+      // await page.screenshot({ path: '/var/www/html/api-midasbuy/screenshots/after-click.png' });
+      try {
+        await page.waitForSelector(
+          "#root > div > div.PaymentResult_container_wrap__ddHmB > div > div.PurchaseContainer_title_box__kWFnk > div > div",
+          { visible: true, timeout: 180000 }
+        );
+        // await page.screenshot({ path: '/var/www/html/api-midasbuy/screenshots/after-wait-for-selector.png' }); // Screenshot jika elemen ditemukan
+      } catch (error) {
+        // console.error('Element not found or timeout exceeded:', error);
+        log("Error Timeout", "error");
+        res.status(500).json(success("Error Order timeout exceeded", error, "500"));
+        return;
+        // await page.screenshot({ path: '/var/www/html/api-midasbuy/screenshots/error-debug.png' }); // Screenshot jika ada error
+      }
 
       // Klik elemen menggunakan page.evaluate
       const finalPayment = await page.evaluate(async () => {
@@ -331,184 +370,35 @@ exports.startAutomation = async (req, res) => {
       log(finalPayment, "success");
       log("Process completed successfully.", "success");
       await page.goto(
-        "https://www.midasbuy.com/midasbuy/om/buy/whiteoutsurvival",
+        urlMidas,
         {
           timeout: 0,
         }
       );
-      res.status(200).json(success("Success", null, "200"))
+      res.status(200).json(success("Success", null, "200"));
     }
   } catch (error) {
-    try {
-      log("browser done login", "success");
-
-      if (id.toLowerCase() === "t") {
-        await clickWithRetry(
-          page,
-          "#root > div > div.BindLoginPop_pop_mode_box__rQwbx.BindLoginPop_m_pop__xNR-M.BindLoginPop_active__xl7ac > div.PopTitle_2_pop_title__CzNzt.PopTitle_2_no_border__PDiPd.PopTitle_2_m_pop__o4rT- > div > i",
-          "close popup for ID 't'"
-        );
-      } else {
-        await clickWithRetry(
-          page,
-          "#root > div > div.Banner_banner_wrap__vQSMq > div.Banner_x_main__EmLds > div > div.Banner_area_wrap__UCAMc > div.Banner_user_tab_box__Bp6NY > div > div > div > span",
-          "get form ID"
-        );
-        await clickWithRetry(
-          page,
-          "#root > div > div.BindLoginPop_pop_mode_box__rQwbx.BindLoginPop_m_pop__xNR-M.BindLoginPop_active__xl7ac > div.BindLoginPop_pop_mess__8gYyc > div.BindLoginPop_login_box__cCh9l > div > div.BindLoginPop_input_wrap_box__jx4ht > div > div > div.Input_input__s4ezt > input[type=text]",
-          "custom ID input"
-        );
-        await page.keyboard.down("Control");
-        await page.keyboard.press("A");
-        await page.keyboard.up("Control");
-        await page.keyboard.press("Backspace");
-        await page.type(
-          "#root > div > div.BindLoginPop_pop_mode_box__rQwbx.BindLoginPop_m_pop__xNR-M.BindLoginPop_active__xl7ac > div.BindLoginPop_pop_mess__8gYyc > div.BindLoginPop_login_box__cCh9l > div > div.BindLoginPop_input_wrap_box__jx4ht > div > div > div.Input_input__s4ezt > input[type=text]",
-          id
-        );
-        await clickWithRetry(
-          page,
-          "#root > div > div.BindLoginPop_pop_mode_box__rQwbx.BindLoginPop_m_pop__xNR-M.BindLoginPop_active__xl7ac > div.BindLoginPop_pop_mess__8gYyc > div.BindLoginPop_login_box__cCh9l > div > div.BindLoginPop_btn_wrap__eiPwz > div > div",
-          "Click ID custom"
-        );
-        log("ID entered successfully.", "success");
-        await sleep(1000);
-      }
-
-      // Klik tombol pembayaran
-      // await clickWithRetry(page, 'div[data-channel-id="CREDIT_CARD"]', "payment button");
-      await sleep(1000);
-
-      for (let index = 0; index < loop; index++) {
-        await sleep(1000);
-        await page.waitForSelector(
-          `#root > div > div.container_wrap > div:nth-child(2) > div > div > div.flex_module > div.box_wrap > div > div > div:nth-child(${
-            parseInt(pilihan) + 1
-          })`
-        );
-        await page.click(
-          `#root > div > div.container_wrap > div:nth-child(2) > div > div > div.flex_module > div.box_wrap > div > div > div:nth-child(${
-            parseInt(pilihan) + 1
-          })`
-        );
-        await sleep(1000);
-
-        try {
-          await clickWithRetry(
-            page,
-            "#root > div > div.container_wrap > div.ChannelListB_pop_mode_box__N5jHh.ChannelListB_l_pop__q7l41.ChannelListB_main_pop__IDQkc.ChannelListB_in__9OBKY.ChannelListB_active__gvs2K.visible > div.ChannelListB_pop_mess__c4pMc > div > div.ChannelListB_left_box__mjFxm > div.ChannelListB_list_box__4jwaa > div:nth-child(1) > div > div:nth-child(1) > div.ChannelPayList_payment_box__oDb6Q > div > div.ChannelPayList_payment_wrap__s0YPx > div.ChannelPayList_link_box__y0E7V",
-            "try click use card others"
-          );
-          await page.waitForSelector(
-            "#root > div > div.container_wrap > div.SelectingCard_pop_mode_box__hTBLF.SelectingCard_m_pop__vI88g.SelectingCard_active__kWEvm.visible > div.SelectingCard_pop_mess__Lcr2H > ul"
-          );
-
-          // Klik elemen menggunakan page.evaluate
-          const list = await page.evaluate(async () => {
-            let textContent = "";
-            while (!textContent) {
-              const element = document.querySelector(
-                "#root > div > div.container_wrap > div.SelectingCard_pop_mode_box__hTBLF.SelectingCard_m_pop__vI88g.SelectingCard_active__kWEvm.visible > div.SelectingCard_pop_mess__Lcr2H > ul"
-              );
-              textContent = element ? element.innerText : "";
-              await new Promise((resolve) => setTimeout(resolve, 100)); // Jeda 100 ms sebelum mencoba lagi
-            }
-            return textContent;
-          });
-          const datalist = list.split("\n\n");
-          for (let index = 0; index < datalist.length; index++) {
-            const element = datalist[index];
-            log(`[${index}] ${element}`, "success");
-          }
-          await page.waitForSelector(
-            "#root > div > div.container_wrap > div.SelectingCard_pop_mode_box__hTBLF.SelectingCard_m_pop__vI88g.SelectingCard_active__kWEvm.visible > div.SelectingCard_pop_mess__Lcr2H > ul > li"
-          );
-
-          // Ambil elemen-elemen <li> dan klik elemen pada indeks yang diinginkan
-          const listItems = await page.$$(
-            "#root > div > div.container_wrap > div.SelectingCard_pop_mode_box__hTBLF.SelectingCard_m_pop__vI88g.SelectingCard_active__kWEvm.visible > div.SelectingCard_pop_mess__Lcr2H > ul > li"
-          );
-
-          if (listItems[indexToClick2]) {
-            await listItems[indexToClick2].click();
-            log(`Clicked element at index ${indexToClick2}`, "success");
-          } else {
-            console.error("Elemen dengan indeks tersebut tidak ditemukan");
-          }
-        } catch (error) {
-          log(error.toString(), "error");
-        }
-        await sleep(1000);
-        await page.waitForSelector('div[data-channel-id="CREDIT_CARD"]');
-        await page.click('div[data-channel-id="CREDIT_CARD"]');
-        await sleep(1000);
-        await page.waitForSelector(
-          'div.Button_btn__P0ibl.Button_btn_primary__1ncdM[data-pay-button="true"]'
-        );
-
-        // Klik elemen menggunakan page.evaluate
-        await page.evaluate(() => {
-          const button = document.querySelector(
-            'div.Button_btn__P0ibl.Button_btn_primary__1ncdM[data-pay-button="true"]'
-          );
-          if (button) {
-            button.click();
-          }
-        });
-        await sleep(1000);
-        await page.waitForSelector(
-          "#root > div > div.container_wrap > div.OrderInfo_pop_mode_box__P-hF9.OrderInfo_m_pop__8j8Hz.OrderInfo_m_pop__8j8Hz.OrderInfo_active__ihp1K.visible > div.OrderInfo_pop_mess__cYRTn > div:nth-child(5) > div > div > div > div > div"
-        );
-
-        // Klik elemen menggunakan page.evaluate
-        await page.evaluate(() => {
-          const button = document.querySelector(
-            "#root > div > div.container_wrap > div.OrderInfo_pop_mode_box__P-hF9.OrderInfo_m_pop__8j8Hz.OrderInfo_m_pop__8j8Hz.OrderInfo_active__ihp1K.visible > div.OrderInfo_pop_mess__cYRTn > div:nth-child(5) > div > div > div > div > div"
-          );
-          if (button) {
-            button.click();
-          }
-        });
-        await sleep(1000);
-        await page.waitForSelector(
-          "#root > div > div.PaymentResult_container_wrap__ddHmB > div > div.PurchaseContainer_title_box__kWFnk > div > div"
-        );
-
-        // Klik elemen menggunakan page.evaluate
-        const finalPayment = await page.evaluate(async () => {
-          let textContent = "";
-          while (!textContent) {
-            const element = document.querySelector(
-              "#root > div > div.PaymentResult_container_wrap__ddHmB > div > div.PurchaseContainer_title_box__kWFnk > div > div"
-            );
-            textContent = element ? element.innerText : "";
-            await new Promise((resolve) => setTimeout(resolve, 100)); // Jeda 100 ms sebelum mencoba lagi
-          }
-          return textContent;
-        });
-        log(finalPayment, "success");
-        log("Process completed successfully.", "success");
-        await page.goto(
-          "https://www.midasbuy.com/midasbuy/om/buy/whiteoutsurvival",
-          {
-            timeout: 0,
-          }
-        );
-      }
-      res.status(200).json(success("Success", null, "200"))
-    } catch (error) {
-      log("An error occurred:" + error, "error");
-      if (error.message.includes('No element found')) {
-        res.status(500).json(success("Saldo tidak mencukupi", error.message, "500"))   
-      } else {
-        res.status(500).json(success("Error", error.message, "500"))   
-      }
+    log("An error occurred:" + error, "error");
+    if (error.message.includes("No element found")) {
+      res
+        .status(500)
+        .json(success("Saldo tidak mencukupi", error.message, "500"));
+      return;
+    } else {
+      res.status(500).json(success("Error", error.message, "500"));
+      return;
+    }
+  }finally {
+    if (browser.isConnected()) {
+      console.log("Menutup browser...");
+      await browser.close();
+      console.log("Browser berhasil ditutup.");
+    } else {
+      console.log("Browser sudah tertutup sebelumnya.");
     }
   }
-  await browser.close();
-}
-
+  // await browser.close();
+};
 
 function sleep(ms) {
   return new Promise((resolve) => {

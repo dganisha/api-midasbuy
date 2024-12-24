@@ -5,12 +5,13 @@ const {
   success,
 } = require("../base/response.base");
 
-exports.getProducts = async (_, res) => {
-  const data = await getData();
+exports.getProducts = async (req, res) => {
+  const { country } = req.query;
+  const data = await getData(country);
   res.status(200).json(success("Success", data, "200"))
 }
 
-const getData = async () => {
+const getData = async (country) => {
   const browser = await puppeteer.launch({
     headless: true, // Ubah menjadi true untuk server tanpa GUI
     args: [
@@ -23,13 +24,23 @@ const getData = async () => {
         "--disable-renderer-backgrounding",
         "--disable-backgrounding-occluded-windows",
         "--no-zygote",                      // Nonaktifkan proses zygote yang kadang bermasalah di VPS
-        "--disable-extensions"              // Nonaktifkan ekstensi untuk mempercepat proses
-    ],
+        "--disable-extensions",              // Nonaktifkan ekstensi untuk mempercepat proses
+],
   });
   await sleep(500);
   const page = await browser.newPage();
   await sleep(500);
-  await page.goto("https://www.midasbuy.com/midasbuy/om/buy/whiteoutsurvival", {
+  let urlMidas = "https://www.midasbuy.com/midasbuy/om/buy/whiteoutsurvival";
+  if(country == "OMR"){
+    urlMidas = "https://www.midasbuy.com/midasbuy/om/buy/whiteoutsurvival"
+  }else if(country == "AED"){
+    urlMidas = "https://www.midasbuy.com/midasbuy/ae/buy/whiteoutsurvival"
+  }
+
+  console.log("URL is " + urlMidas)
+  console.log("country is " + country)
+
+  await page.goto(urlMidas, {
     timeout: 0,
   });
   console.log("Navigated to the website.", "success");
@@ -81,8 +92,15 @@ const getPayment = async (req) => {
   // const password = strauth.substring(splitIndex + 1)
   const email = req.body.emailLogin
   const password = req.body.passwordLogin
+  const country = req.body.country
   const id = '297253814'
   const loop = 1
+  let urlMidas;
+  if(country == "OMR"){
+    urlMidas = "https://www.midasbuy.com/midasbuy/om/buy/whiteoutsurvival"
+  }else if(country == "AED"){
+    urlMidas = "https://www.midasbuy.com/midasbuy/ae/buy/whiteoutsurvival"
+  }
 
   const browser = await puppeteer.launch({
     headless: true, // Ubah menjadi true untuk server tanpa GUI
@@ -102,7 +120,7 @@ const getPayment = async (req) => {
   await sleep(500)
   const page = await browser.newPage();
   await sleep(500)
-  await page.goto("https://www.midasbuy.com/midasbuy/om/buy/whiteoutsurvival", {
+  await page.goto(urlMidas, {
     timeout: 0,
   });
   await sleep(500)
@@ -291,7 +309,7 @@ const getPayment = async (req) => {
 
 function extractDiamondAndPrice(data) {
   // Regex untuk menangkap nilai diamond dan harga sebelum Rp atau OMR
-  const regex = /(\d+)\n(Rp\s*[\d.,]+|[\d.]+\s*OMR)/g;
+  const regex = /(\d+)\n(Rp\s*[\d.,]+|[\d.]+\s*OMR|[\d.]+\s*AED)/g;
   const result = [];
   let match;
 
