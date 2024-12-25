@@ -149,6 +149,16 @@ const getPayment = async (req) => {
   const extractedData = extractDiamondAndPrice(data.replaceAll("\n\n", "\n"));
   const pilihan = 2;
   try {
+    const closeButtonSelector = '.PatFacePopWrapper_close-btn__erWAb';
+    const isPopupPromo = await page.$(closeButtonSelector);
+    if (isPopupPromo) {
+      // Klik tombol jika elemen ditemukan
+      await page.click(closeButtonSelector);
+      console.log(`[${new Date().toLocaleTimeString()}] ➤ Popup Promo closed successfully.`);
+    } else {
+      console.log(`[${new Date().toLocaleTimeString()}] ➤ No Popup Promo found.`);
+    }
+    
     // Klik pertama
     await clickWithRetry(
       page,
@@ -215,7 +225,19 @@ const getPayment = async (req) => {
     );
 
     await sleep(1000);
-
+    isPassKey = await frame.waitForSelector('.pop-mode-box', { timeout: 5000 });
+      if (isPassKey) {
+          const success = await frame.evaluate(() => {
+              const popModeBox = document.querySelector('.pop-mode-box');
+              const closeButton = popModeBox?.style.display === 'block' && popModeBox.querySelector('.close-btn');
+              if (closeButton) {
+                  closeButton.click();
+                  return true;
+              }
+              return false;
+          });
+          if (success) console.log(`[${new Date().toLocaleTimeString()}] ➤  Passkey popup closed successfully.`);
+      }
     // Proses pilihan berdasarkan ID
     if (id.toLowerCase() === "t") {
       await clickWithRetry(
@@ -267,7 +289,7 @@ const getPayment = async (req) => {
           "try click use card others"
         );
         await page.waitForSelector(
-          "#root > div > div.container_wrap > div.SelectingCard_pop_mode_box__hTBLF.SelectingCard_m_pop__vI88g.SelectingCard_active__kWEvm.visible > div.SelectingCard_pop_mess__Lcr2H > ul"
+          ".SelectingCard_pop_mess__Lcr2H > ul"
         );
 
         // Klik elemen menggunakan page.evaluate
@@ -275,7 +297,7 @@ const getPayment = async (req) => {
           let textContent = "";
           while (!textContent) {
             const element = document.querySelector(
-              "#root > div > div.container_wrap > div.SelectingCard_pop_mode_box__hTBLF.SelectingCard_m_pop__vI88g.SelectingCard_active__kWEvm.visible > div.SelectingCard_pop_mess__Lcr2H > ul"
+              ".SelectingCard_pop_mess__Lcr2H > ul"
             );
             textContent = element ? element.innerText : "";
             await new Promise((resolve) => setTimeout(resolve, 100)); // Jeda 100 ms sebelum mencoba lagi
@@ -292,6 +314,7 @@ const getPayment = async (req) => {
           }
           payments.push(payment)
         }
+        console.log('success get list card');
         await browser.close();
         return payments;
       } catch (e) {

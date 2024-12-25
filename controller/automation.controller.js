@@ -128,6 +128,19 @@ exports.startAutomation = async (req, res) => {
   }
   try {
     log("PROCESS TO TRY");
+    await page.screenshot({ path: '/var/www/html/api-midasbuy/screenshots/check-first-page.png' });
+    
+    const closeButtonSelector = '.PatFacePopWrapper_close-btn__erWAb';
+    const isPopupPromo = await page.$(closeButtonSelector);
+    if (isPopupPromo) {
+      // Klik tombol jika elemen ditemukan
+      await page.click(closeButtonSelector);
+      console.log(`[${new Date().toLocaleTimeString()}] ➤ Popup Promo closed successfully.`);
+    } else {
+      console.log(`[${new Date().toLocaleTimeString()}] ➤ No Popup Promo found.`);
+    }
+
+    await page.screenshot({ path: '/var/www/html/api-midasbuy/screenshots/after-popup-promo.png' });
     // Klik pertama
     await clickWithRetry(
       page,
@@ -194,7 +207,21 @@ exports.startAutomation = async (req, res) => {
     );
 
     await sleep(1000);
+    isPassKey = await frame.waitForSelector('.pop-mode-box', { timeout: 5000 });
+      if (isPassKey) {
+          const success = await frame.evaluate(() => {
+              const popModeBox = document.querySelector('.pop-mode-box');
+              const closeButton = popModeBox?.style.display === 'block' && popModeBox.querySelector('.close-btn');
+              if (closeButton) {
+                  closeButton.click();
+                  return true;
+              }
+              return false;
+          });
+          if (success) console.log(`[${new Date().toLocaleTimeString()}] ➤  Passkey popup closed successfully.`);
+      }
 
+    await page.screenshot({ path: '/var/www/html/api-midasbuy/screenshots/check-cookie.png' });
     // Proses pilihan berdasarkan ID
     if (id.toLowerCase() === "t") {
       await clickWithRetry(
@@ -224,6 +251,15 @@ exports.startAutomation = async (req, res) => {
       log("ID entered is : " + id, "success");
       log("ID entered successfully.", "success");
       await sleep(1000);
+
+      const checkErrorID = '.Input_error_text__Pd7xh';
+      const isErrorID = await page.$(checkErrorID);
+      if (isErrorID) {
+        log('ID is invalid. Please check the ID');
+        // console.log(`[${new Date().toLocaleTimeString()}] ➤ Popup Promo closed successfully.`);
+        res.status(500).json(success("ID is invalid. Please check the ID.", null, "500"));
+        return;
+      }
     }
 
     for (let index = 0; index < loop; index++) {
@@ -241,13 +277,14 @@ exports.startAutomation = async (req, res) => {
       );
       await sleep(1000);
       try {
+        await page.screenshot({ path: '/var/www/html/api-midasbuy/screenshots/after-click-use-card-others.png' });
         await clickWithRetry(
           page,
           "#root > div > div.container_wrap > div.ChannelListB_pop_mode_box__N5jHh.ChannelListB_l_pop__q7l41.ChannelListB_main_pop__IDQkc.ChannelListB_in__9OBKY.ChannelListB_active__gvs2K.visible > div.ChannelListB_pop_mess__c4pMc > div > div.ChannelListB_left_box__mjFxm > div.ChannelListB_list_box__4jwaa > div:nth-child(1) > div > div:nth-child(1) > div.ChannelPayList_payment_box__oDb6Q > div > div.ChannelPayList_payment_wrap__s0YPx > div.ChannelPayList_link_box__y0E7V",
           "try click use card others"
         );
         await page.waitForSelector(
-          "#root > div > div.container_wrap > div.SelectingCard_pop_mode_box__hTBLF.SelectingCard_m_pop__vI88g.SelectingCard_active__kWEvm.visible > div.SelectingCard_pop_mess__Lcr2H > ul"
+          ".SelectingCard_pop_mess__Lcr2H > ul"
         );
 
         // Klik elemen menggunakan page.evaluate
@@ -255,7 +292,7 @@ exports.startAutomation = async (req, res) => {
           let textContent = "";
           while (!textContent) {
             const element = document.querySelector(
-              "#root > div > div.container_wrap > div.SelectingCard_pop_mode_box__hTBLF.SelectingCard_m_pop__vI88g.SelectingCard_active__kWEvm.visible > div.SelectingCard_pop_mess__Lcr2H > ul"
+              ".SelectingCard_pop_mess__Lcr2H > ul"
             );
             textContent = element ? element.innerText : "";
             await new Promise((resolve) => setTimeout(resolve, 100)); // Jeda 100 ms sebelum mencoba lagi
@@ -268,12 +305,12 @@ exports.startAutomation = async (req, res) => {
           log(`[${index}] ${element}`, "success");
         }
         await page.waitForSelector(
-          "#root > div > div.container_wrap > div.SelectingCard_pop_mode_box__hTBLF.SelectingCard_m_pop__vI88g.SelectingCard_active__kWEvm.visible > div.SelectingCard_pop_mess__Lcr2H > ul > li"
+          ".SelectingCard_pop_mess__Lcr2H > ul > li"
         );
 
         // Ambil elemen-elemen <li> dan klik elemen pada indeks yang diinginkan
         const listItems = await page.$$(
-          "#root > div > div.container_wrap > div.SelectingCard_pop_mode_box__hTBLF.SelectingCard_m_pop__vI88g.SelectingCard_active__kWEvm.visible > div.SelectingCard_pop_mess__Lcr2H > ul > li"
+          ".SelectingCard_pop_mess__Lcr2H > ul > li"
         );
 
         if (listItems[indexToClick]) {
