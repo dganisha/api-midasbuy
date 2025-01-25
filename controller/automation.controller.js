@@ -67,6 +67,7 @@ exports.startAutomation = async (req, res) => {
   const indexToClick = req.body.paymentId;
   const indexToClick2 = req.body.paymentId2;
   const country = req.body.country;
+  const reff_number = req.body.reff_number;
 
   let urlMidas = "https://www.midasbuy.com/midasbuy/om/buy/whiteoutsurvival"
   if(country == "OMR"){
@@ -166,11 +167,11 @@ exports.startAutomation = async (req, res) => {
     // Masukkan email
     await clickWithRetry(
       frame,
-      "#login-sdk-app > div.pop-mode-box > div > div.mess > div > div.item > div > div > div > div.input-box > p > input[type=email]",
+      "div.input-box > p > input[type=email]",
       "email input"
     );
     await frame.type(
-      "#login-sdk-app > div.pop-mode-box > div > div.mess > div > div.item > div > div > div > div.input-box > p > input[type=email]",
+      "div.input-box > p > input[type=email]",
       email,
       { sleep: 100 }
     );
@@ -180,7 +181,7 @@ exports.startAutomation = async (req, res) => {
     // Klik tombol lanjut
     await clickWithRetry(
       frame,
-      "#login-sdk-app > div.pop-mode-box > div > div.mess > div > div.btn-wrap.btn-wraps.btn-wrap-spacing > div",
+      "div.btn-wrap.btn-wraps.btn-wrap-spacing > div",
       "continue button"
     );
     await sleep(1000);
@@ -188,13 +189,13 @@ exports.startAutomation = async (req, res) => {
     // Masukkan password
     await clickWithRetry(
       frame,
-      "#login-sdk-app > div.pop-mode-box > div > div.mess > div.form-box > div:nth-child(2) > div:nth-child(2) > div > input[type=password]",
+      "div:nth-child(2) > div:nth-child(2) > div > input[type=password]",
       "password input"
     );
     await frame.type(
-      "#login-sdk-app > div.pop-mode-box > div > div.mess > div.form-box > div:nth-child(2) > div:nth-child(2) > div > input[type=password]",
+      "div:nth-child(2) > div:nth-child(2) > div > input[type=password]",
       password,
-      { sleep: 500 }
+      { sleep: 100 }
     );
     log("Password typed successfully.", "success");
     await sleep(1000);
@@ -202,7 +203,7 @@ exports.startAutomation = async (req, res) => {
     // Klik tombol login
     await clickWithRetry(
       frame,
-      "#login-sdk-app > div.pop-mode-box > div > div.mess > div.btn-wrap.btn-wraps > div",
+      "div.btn-wrap.btn-wraps > div",
       "login button"
     );
 
@@ -221,6 +222,26 @@ exports.startAutomation = async (req, res) => {
           if (success) console.log(`[${new Date().toLocaleTimeString()}] ➤  Passkey popup closed successfully.`);
       }
 
+    sleep(2000);
+    log('Check Again Passkey Popup is has closed or not');
+    isPassKey2 = await frame.waitForSelector('.passkey-mode', { timeout: 5000 });
+    if(isPassKey2){
+      const success = await frame.evaluate(() => {
+          const popModeBox = document.querySelector('.passkey-mode');
+          const closeButton = popModeBox?.style.display === 'block' && popModeBox.querySelector('.close-btn');
+          if (closeButton) {
+            closeButton.click();
+            return true;
+          }
+          return false;
+      });
+      if(success){
+        log('Passkey popup (2x) closed successfully');
+      }
+    }else{
+      log('Passkey popup is already closed before');
+    }
+
     await page.screenshot({ path: '/var/www/html/api-midasbuy/screenshots/check-cookie.png' });
     // Proses pilihan berdasarkan ID
     if (id.toLowerCase() === "t") {
@@ -232,7 +253,7 @@ exports.startAutomation = async (req, res) => {
     } else {
       await clickWithRetry(
         page,
-        "#root > div > div.BindLoginPop_pop_mode_box__rQwbx.BindLoginPop_m_pop__xNR-M.BindLoginPop_active__xl7ac > div.BindLoginPop_pop_mess__8gYyc > div.BindLoginPop_login_box__cCh9l > div > div.BindLoginPop_input_wrap_box__jx4ht > div > div > div.Input_input__s4ezt > input[type=text]",
+        "#root > div > div.BindLoginPop_pop_mode_box__rQwbx > div.BindLoginPop_pop_mess__8gYyc > div.BindLoginPop_login_box__cCh9l > div.BindLoginPop_login_channel_box__n1AuR > div.SelectServerBox_SelectServerBox_wrap__r5LGW > div > div > input[type=text]",
         "custom ID input"
       );
       await page.keyboard.down("Control");
@@ -240,15 +261,15 @@ exports.startAutomation = async (req, res) => {
       await page.keyboard.up("Control");
       await page.keyboard.press("Backspace");
       await page.type(
-        "#root > div > div.BindLoginPop_pop_mode_box__rQwbx.BindLoginPop_m_pop__xNR-M.BindLoginPop_active__xl7ac > div.BindLoginPop_pop_mess__8gYyc > div.BindLoginPop_login_box__cCh9l > div > div.BindLoginPop_input_wrap_box__jx4ht > div > div > div.Input_input__s4ezt > input[type=text]",
+        "#root > div > div.BindLoginPop_pop_mode_box__rQwbx > div.BindLoginPop_pop_mess__8gYyc > div.BindLoginPop_login_box__cCh9l > div.BindLoginPop_login_channel_box__n1AuR > div.SelectServerBox_SelectServerBox_wrap__r5LGW > div > div > input[type=text]",
         id
       );
       await clickWithRetry(
         page,
-        "#root > div > div.BindLoginPop_pop_mode_box__rQwbx.BindLoginPop_m_pop__xNR-M.BindLoginPop_active__xl7ac > div.BindLoginPop_pop_mess__8gYyc > div.BindLoginPop_login_box__cCh9l > div > div.BindLoginPop_btn_wrap__eiPwz > div > div",
+        "#root > div > div.BindLoginPop_pop_mode_box__rQwbx > div.BindLoginPop_pop_mess__8gYyc > div.BindLoginPop_login_box__cCh9l > div.BindLoginPop_btn_wrap__eiPwz > div.Button_btn_wrap__utZqk > div.Button_btn__P0ibl > div> div",
         "Click ID custom"
       );
-      log("ID entered is : " + id, "success");
+      log("ID entered is : " + id + "(orderid " + reff_number + ")", "success");
       log("ID entered successfully.", "success");
       await sleep(1000);
 
@@ -276,6 +297,26 @@ exports.startAutomation = async (req, res) => {
         })`
       );
       await sleep(1000);
+
+      await page.waitForSelector('div.ChannelUserBox_sub_text__UR2zE', {
+        visible: true,
+        timeout: 60000,
+      });
+
+      // Ambil teks dari elemen
+      const userIdInputed = await page.$eval('div.ChannelUserBox_sub_text__UR2zE', (element) => {
+        // Bersihkan teks jika perlu
+        return element.textContent.trim().replace(/["()]/g, '');
+      });
+      log("Orderid " + reff_number + " Entered ID is " + id + " | set value bot : " + userIdInputed);
+      if(userIdInputed == 297253814 || userIdInputed == "297253814"){
+        res.status(500).json(success("ID is not valid (297253814), please try to order again.", null, "500"));
+        return;
+      }else if(userIdInputed != id){
+        res.status(500).json(success("ID not valid (request : " + id + " | inputed : " + userIdInputed +")", null, "500"));
+        return;
+      }
+
       try {
         await page.screenshot({ path: '/var/www/html/api-midasbuy/screenshots/after-click-use-card-others.png' });
         await clickWithRetry(
@@ -381,7 +422,7 @@ exports.startAutomation = async (req, res) => {
       try {
         await page.waitForSelector(
           "#root > div > div.PaymentResult_container_wrap__ddHmB > div > div.PurchaseContainer_title_box__kWFnk > div > div",
-          { visible: true, timeout: 180000 }
+          { visible: true, timeout: 600000 }
         );
         // await page.screenshot({ path: '/var/www/html/api-midasbuy/screenshots/after-wait-for-selector.png' }); // Screenshot jika elemen ditemukan
       } catch (error) {
@@ -406,13 +447,16 @@ exports.startAutomation = async (req, res) => {
       });
       log(finalPayment, "success");
       log("Process completed successfully.", "success");
+      log("Orderid " + reff_number + " is success order", "success");
       await page.goto(
         urlMidas,
         {
           timeout: 0,
         }
       );
-      res.status(200).json(success("Success", null, "200"));
+      // res.status(200).json(success("Success", null, "200"));
+      const responseData = { reff_number: reff_number };
+      res.status(200).json(success("Success", responseData, "200"));
     }
   } catch (error) {
     log("An error occurred:" + error, "error");

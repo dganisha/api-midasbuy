@@ -158,7 +158,7 @@ const getPayment = async (req) => {
     } else {
       console.log(`[${new Date().toLocaleTimeString()}] ➤ No Popup Promo found.`);
     }
-    
+
     // Klik pertama
     await clickWithRetry(
       page,
@@ -184,11 +184,11 @@ const getPayment = async (req) => {
     // Masukkan email
     await clickWithRetry(
       frame,
-      "#login-sdk-app > div.pop-mode-box > div > div.mess > div > div.item > div > div > div > div.input-box > p > input[type=email]",
+      "div.input-box > p > input[type=email]",
       "email input"
     );
     await frame.type(
-      "#login-sdk-app > div.pop-mode-box > div > div.mess > div > div.item > div > div > div > div.input-box > p > input[type=email]",
+      "div.input-box > p > input[type=email]",
       email,
       { sleep: 100 }
     );
@@ -198,7 +198,7 @@ const getPayment = async (req) => {
     // Klik tombol lanjut
     await clickWithRetry(
       frame,
-      "#login-sdk-app > div.pop-mode-box > div > div.mess > div > div.btn-wrap.btn-wraps.btn-wrap-spacing > div",
+      "div.btn-wrap.btn-wraps.btn-wrap-spacing > div",
       "continue button"
     );
     await sleep(1000);
@@ -206,11 +206,11 @@ const getPayment = async (req) => {
     // Masukkan password
     await clickWithRetry(
       frame,
-      "#login-sdk-app > div.pop-mode-box > div > div.mess > div.form-box > div:nth-child(2) > div:nth-child(2) > div > input[type=password]",
+      "div:nth-child(2) > div:nth-child(2) > div > input[type=password]",
       "password input"
     );
     await frame.type(
-      "#login-sdk-app > div.pop-mode-box > div > div.mess > div.form-box > div:nth-child(2) > div:nth-child(2) > div > input[type=password]",
+      "div:nth-child(2) > div:nth-child(2) > div > input[type=password]",
       password,
       { sleep: 100 }
     );
@@ -220,15 +220,15 @@ const getPayment = async (req) => {
     // Klik tombol login
     await clickWithRetry(
       frame,
-      "#login-sdk-app > div.pop-mode-box > div > div.mess > div.btn-wrap.btn-wraps > div",
+      "div.btn-wrap.btn-wraps > div",
       "login button"
     );
 
     await sleep(1000);
-    isPassKey = await frame.waitForSelector('.pop-mode-box', { timeout: 5000 });
+    isPassKey = await frame.waitForSelector('.passkey-mode', { timeout: 5000 });
       if (isPassKey) {
           const success = await frame.evaluate(() => {
-              const popModeBox = document.querySelector('.pop-mode-box');
+              const popModeBox = document.querySelector('.passkey-mode');
               const closeButton = popModeBox?.style.display === 'block' && popModeBox.querySelector('.close-btn');
               if (closeButton) {
                   closeButton.click();
@@ -238,6 +238,25 @@ const getPayment = async (req) => {
           });
           if (success) console.log(`[${new Date().toLocaleTimeString()}] ➤  Passkey popup closed successfully.`);
       }
+    sleep(2000);
+    log('Check Again Passkey Popup is has closed or not');
+    isPassKey2 = await frame.waitForSelector('.passkey-mode', { timeout: 5000 });
+    if(isPassKey2){
+      const success = await frame.evaluate(() => {
+          const popModeBox = document.querySelector('.passkey-mode');
+          const closeButton = popModeBox?.style.display === 'block' && popModeBox.querySelector('.close-btn');
+          if (closeButton) {
+            closeButton.click();
+            return true;
+          }
+          return false;
+      });
+      if(success){
+        log('Passkey popup (2x) closed successfully');
+      }
+    }else{
+      log('Passkey popup is already closed before');
+    }
     // Proses pilihan berdasarkan ID
     if (id.toLowerCase() === "t") {
       await clickWithRetry(
@@ -248,7 +267,7 @@ const getPayment = async (req) => {
     } else {
       await clickWithRetry(
         page,
-        "#root > div > div.BindLoginPop_pop_mode_box__rQwbx.BindLoginPop_m_pop__xNR-M.BindLoginPop_active__xl7ac > div.BindLoginPop_pop_mess__8gYyc > div.BindLoginPop_login_box__cCh9l > div > div.BindLoginPop_input_wrap_box__jx4ht > div > div > div.Input_input__s4ezt > input[type=text]",
+        "#root > div > div.BindLoginPop_pop_mode_box__rQwbx > div.BindLoginPop_pop_mess__8gYyc > div.BindLoginPop_login_box__cCh9l > div.BindLoginPop_login_channel_box__n1AuR > div.SelectServerBox_SelectServerBox_wrap__r5LGW > div > div > input[type=text]",
         "custom ID input"
       );
       await page.keyboard.down("Control");
@@ -256,12 +275,12 @@ const getPayment = async (req) => {
       await page.keyboard.up("Control");
       await page.keyboard.press("Backspace");
       await page.type(
-        "#root > div > div.BindLoginPop_pop_mode_box__rQwbx.BindLoginPop_m_pop__xNR-M.BindLoginPop_active__xl7ac > div.BindLoginPop_pop_mess__8gYyc > div.BindLoginPop_login_box__cCh9l > div > div.BindLoginPop_input_wrap_box__jx4ht > div > div > div.Input_input__s4ezt > input[type=text]",
+        "#root > div > div.BindLoginPop_pop_mode_box__rQwbx > div.BindLoginPop_pop_mess__8gYyc > div.BindLoginPop_login_box__cCh9l > div.BindLoginPop_login_channel_box__n1AuR > div.SelectServerBox_SelectServerBox_wrap__r5LGW > div > div > input[type=text]",
         id
       );
       await clickWithRetry(
         page,
-        "#root > div > div.BindLoginPop_pop_mode_box__rQwbx.BindLoginPop_m_pop__xNR-M.BindLoginPop_active__xl7ac > div.BindLoginPop_pop_mess__8gYyc > div.BindLoginPop_login_box__cCh9l > div > div.BindLoginPop_btn_wrap__eiPwz > div > div",
+        "#root > div > div.BindLoginPop_pop_mode_box__rQwbx > div.BindLoginPop_pop_mess__8gYyc > div.BindLoginPop_login_box__cCh9l > div.BindLoginPop_btn_wrap__eiPwz > div.Button_btn_wrap__utZqk > div.Button_btn__P0ibl > div> div",
         "Click ID custom"
       );
       log("ID entered successfully.", "success");
